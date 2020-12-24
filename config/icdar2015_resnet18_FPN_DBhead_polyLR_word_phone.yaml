@@ -1,0 +1,84 @@
+name: DBNet
+base: ['config/icdar2015.yaml']
+arch:
+  type: Model
+  backbone:
+    type: resnet18
+    pretrained: true
+  neck:
+    type: FPN
+    inner_channels: 256
+  head:
+    type: DBHead
+    out_channels: 2
+    k: 50
+post_processing:
+  type: SegDetectorRepresenter
+  args:
+    thresh: 0.5
+    box_thresh: 0.7
+    max_candidates: 1000
+    unclip_ratio: 1.5 # from paper
+metric:
+  type: QuadMetric
+  args:
+    is_output_polygon: false
+loss:
+  type: DBLoss
+  alpha: 1
+  beta: 10
+  ohem_ratio: 3
+#optimizer:
+#  type: Adam
+#  args:
+#    lr: 0.001
+#    weight_decay: 0
+#    amsgrad: true
+lr_scheduler:
+  type: WarmupPolyLR
+  args:
+    warmup_epoch: 20
+
+train:
+  resume_checkpoint: '/red_detection/DBNet/DBNet_fzh/phone_word_model/model_0.89.pth'
+  output_path: '/red_detection/DBNet/DBNet_fzh/phone_word_model'
+  epochs: 200
+#trainer:
+#  seed: 2
+#  epochs: 1004
+#  log_iter: 1
+#  show_images_iter: 2
+#  resume_checkpoint: '/red_detection/DBNet/code_pretrain_model/model_latest_express_code_7_13.pth'
+#  finetune_checkpoint: ''
+#  output_dir: output
+#  tensorboard: false
+dataset:
+  train:
+    dataset:
+      args:
+        data_path:
+          - /red_detection/DBNet/data/express_train_v2.txt
+        img_mode: RGB
+    loader:
+      batch_size: 16
+      shuffle: true
+      pin_memory: true
+      num_workers: 0
+      collate_fn: ICDARCollectFN
+  validate:
+    dataset:
+      args:
+        data_path:
+          - /red_detection/DBNet/data/express_train_v2.txt
+        img_mode: RGB
+        pre_processes:
+          args:
+            min_scale: 736
+            max_scale: 1088
+            resize_text_polys: true
+    loader:
+      batch_size: 1
+      shuffle: false
+      pin_memory: false
+      num_workers: 0
+      collate_fn: ICDARCollectFN
